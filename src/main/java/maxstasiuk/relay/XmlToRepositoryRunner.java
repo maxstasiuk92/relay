@@ -6,7 +6,6 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import javax.transaction.Transactional;
 
@@ -42,36 +41,34 @@ public class XmlToRepositoryRunner implements CommandLineRunner {
 				Reader fileReader = new InputStreamReader(fileStream, Charset.forName(inputXmlEncoding));
 				TransactionReader transactionReader = new TransactionReader(fileReader)) {
 			
-			while (!transactionReader.endOfTransactions()) {
-				List<Transaction> t = loadFromXml(transactionReader, 1);
-				saveToRepository(t);
+			while (transactionReader.hasNext()) {
+				Transaction t = transactionReader.next();
+				repository.save(t);
 			}
 		} catch (XmlProcessingException e) {
 			System.out.println("Error in xml-file");
 			e.printStackTrace();
-		} catch (Exception e) {
+		} catch (Exception e) { //including TransactionException
 			System.out.println("Application error");
 			e.printStackTrace();
 		}
 	}
-
+	
+	//-----------------for future purposes-----------------
+	
 	protected List<Transaction> loadFromXml(TransactionReader transactionReader, int maxCount) {
 		int count = 0;
-		boolean hasMore;
 		ArrayList<Transaction> transactionBuffer = new ArrayList<>(maxCount);
-		do {
-			Optional<Transaction> ot = transactionReader.retrieveTransaction();
-			if (hasMore = ot.isPresent()) {
-				transactionBuffer.add(ot.get());
-				count++;
-			} 
-		} while(hasMore && count < maxCount);
-		
+		while(transactionReader.hasNext() && count < maxCount) {
+			Transaction t = transactionReader.next();
+			transactionBuffer.add(t);
+			count++;
+		} 
 		return transactionBuffer;
 	}
 
 	@Transactional
-	protected void saveToRepository(List<Transaction> transactions) {
+	public void saveToRepository(List<Transaction> transactions) {
 		for (var t : transactions) {
 			repository.save(t);
 		}

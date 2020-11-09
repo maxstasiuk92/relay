@@ -1,7 +1,7 @@
 package maxstasiuk.relay.xml;
 
 import java.io.Reader;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -16,15 +16,17 @@ import maxstasiuk.relay.data.Transaction;
 public class TransactionReader implements AutoCloseable {
 	private XMLStreamReader xmlStreamReader;
 	private Unmarshaller unmarshaller;
-	private boolean insideTransactions;
-	private boolean endOfTransactions;
+	private Transaction nextTransaction;
+	private State state;
+	
+	enum State {NEW, EMPTY_NEXT, FULL_NEXT, OVER};
 	
 	public TransactionReader(Reader source) throws NullPointerException, XmlProcessingException {
 		if (source == null) {
 			throw new NullPointerException("source is null");
 		}
-		insideTransactions = false;
-		endOfTransactions = false;
+		nextTransaction = null;
+		state = State.NEW;
 		try {
 			xmlStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(source);
 			unmarshaller = JAXBContext.newInstance(Transaction.class).createUnmarshaller();
@@ -40,33 +42,60 @@ public class TransactionReader implements AutoCloseable {
 		} 
 	}
 	
-	public boolean endOfTransactions() {
-		return endOfTransactions;
+	public boolean hasNext() {
+		if (state != State.FULL_NEXT) {
+			unmarshalIfPossible();
+		}
+		return state == State.FULL_NEXT;
 	}
 	
-	public Optional<Transaction> retrieveTransaction() throws XmlProcessingException {
-		if (endOfTransactions) {
-			return Optional.empty();
+	public Transaction next() throws NoSuchElementException {
+		if (state != State.FULL_NEXT) {
+			unmarshalIfPossible();
+		} 
+		if (state != State.FULL_NEXT) {
+			throw new NoSuchElementException();
 		}
-		if (!insideTransactions) {
-			gotoFirstTransaction();
-			insideTransactions = true;
-		}
-		Optional<Transaction> optTransaction = unmarshalTransaction();
-		if (optTransaction.isPresent()) {
-			return optTransaction;
-		} else {
-			endOfTransactions = true;
-			return Optional.empty();
-		}
+		state = State.EMPTY_NEXT;
+		return nextTransaction;
 	}
-
+	
 	@Override
 	public void close() throws Exception {
 		xmlStreamReader.close(); //source remains open
 	}
 	
-	protected void gotoFirstTransaction() throws XmlProcessingException {
+	protected void unmarshalIfPossible() {
+		gotoFirstIfNeeded();
+		if (state != State.EMPTY_NEXT && state != State.FULL_NEXT) {
+			return;
+		}
+		try {
+			//skip white spaces before tag
+			int event = xmlStreamReader.getEventType();
+			if (event != XMLStreamReader.START_ELEMENT && event != XMLStreamReader.END_ELEMENT) {
+				event = xmlStreamReader.nextTag();
+			}
+			//analyze tag
+			if (event == XMLStreamReader.START_ELEMENT) {
+				nextTransaction = unmarshaller.unmarshal(xmlStreamReader, Transaction.class).getValue();
+				state = State.FULL_NEXT;
+			} else if (event == XMLStreamReader.END_ELEMENT) {
+				state = State.OVER;
+			} else {
+				state = State.OVER;
+				throw new XmlProcessingException("expected START_ELEMENT or END_ELEMENT, but found " + event);
+			}
+		} catch(JAXBException | XMLStreamException e) {
+			state = State.OVER;
+			throw new XmlProcessingException(e);
+		} //XmlProcessingException should not be caught here
+	}
+	
+	protected void gotoFirstIfNeeded() throws XmlProcessingException {
+		if (state != State.NEW) {
+			return;
+		}
 		boolean atTransaction = false;
 		try {
 			while (xmlStreamReader.hasNext()) {
@@ -78,36 +107,15 @@ public class TransactionReader implements AutoCloseable {
 				}
 			}
 		} catch (XMLStreamException e) {
+			state = State.OVER;
 			throw new XmlProcessingException(e);
 		}
 		if (!atTransaction) {
+			state = State.OVER;
 			throw new XmlProcessingException("no <transaction> found");
 		}
+		state = State.EMPTY_NEXT;
 	}
 	
-	protected Optional<Transaction> unmarshalTransaction() {
-		//skip white spaces before tag
-		int event = xmlStreamReader.getEventType();
-		if (!(event == XMLStreamReader.START_ELEMENT || event == XMLStreamReader.END_ELEMENT)) {
-			try {
-				event = xmlStreamReader.nextTag();
-			} catch(XMLStreamException e) {
-				throw new XmlProcessingException(e);
-			}
-		}
-		//analyze tag
-		if (event == XMLStreamReader.START_ELEMENT) {
-			Transaction t;
-			try {
-				t = unmarshaller.unmarshal(xmlStreamReader, Transaction.class).getValue();
-			} catch (JAXBException e) {
-				throw new XmlProcessingException(e);
-			}
-			return Optional.of(t);
-		} else if (event == XMLStreamReader.END_ELEMENT) {
-			return Optional.empty();
-		} else {
-			throw new XmlProcessingException("expected START_ELEMENT or END_ELEMENT, but found " + event);
-		}
-	}
+	
 }

@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.math.BigDecimal;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
@@ -29,7 +30,8 @@ public class BindXmlTests {
 	public void correctTransaction() throws Exception {
 		//instantiate transaction
 		Client c = new Client("Ivan", "Sidoroff", "Sidoroff", 1234567892);
-		Transaction refTransaction = new Transaction("A PLACE 3", 12.01f, "USD", "123456****1234", c);
+		BigDecimal a = new BigDecimal("12.01");
+		Transaction refTransaction = new Transaction("A PLACE 3", a, "USD", "123456****1234", c);
 		Transaction resTransaction;
 		
 		//marshal
@@ -41,7 +43,7 @@ public class BindXmlTests {
 				TransactionReader transactionReader = new TransactionReader(xmlReader)) {
 			
 			//unmarshal
-			resTransaction = transactionReader.retrieveTransaction().get();
+			resTransaction = transactionReader.next();
 		}
 		//compare
 		assertEquals(refTransaction, resTransaction);
@@ -54,7 +56,7 @@ public class BindXmlTests {
 				Reader xmlReader = new InputStreamReader(xmlInStream);
 				TransactionReader transactionReader = new TransactionReader(xmlReader)) {
 			
-			assertThrows(XmlProcessingException.class, ()->transactionReader.retrieveTransaction());
+			assertThrows(XmlProcessingException.class, ()->transactionReader.next());
 		}
 	}
 	

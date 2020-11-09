@@ -16,6 +16,8 @@ import maxstasiuk.relay.db.TransactionRepository;
 
 import static org.springframework.test.jdbc.JdbcTestUtils.*;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
@@ -44,7 +46,8 @@ public class RepositoryTests {
 	@Test
 	public void saveAndGetTest() {
 		Client c = new Client("Ivan", "Sidoroff", "Sidoroff", 1234567892);
-		Transaction refTransaction = new Transaction("A PLACE 3", 12.01f, "USD", "123456****1234", c);
+		BigDecimal a = new BigDecimal("12.01");
+		Transaction refTransaction = new Transaction("A PLACE 3", a, "USD", "123456****1234", c);
 		repo.save(refTransaction);
 		
 		assertEquals(1, countRowsInTable(this.testJdbcTempl, "Transactions"));

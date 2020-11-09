@@ -1,6 +1,7 @@
 package maxstasiuk.relay.data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Objects;
 
 import javax.persistence.Access;
@@ -28,19 +29,19 @@ import javax.xml.bind.annotation.XmlTransient;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class Transaction implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
-	private long id;
-	private String place;
-	private Float amount;
-	private String currency;
-	private String card;
-	private Client client;
+		
+	protected long id;
+	protected String place;
+	protected BigDecimal amount;
+	protected String currency;
+	protected String card;
+	protected Client client;
 	
 	protected Transaction() {}
 	
-	public Transaction(String place, float amount, String currency, String card, Client client) {
+	public Transaction(String place, BigDecimal amount, String currency, String card, Client client) {
 		this.place = Objects.requireNonNull(place);
-		this.amount = amount;
+		this.amount = Objects.requireNonNull(amount);
 		this.currency = Objects.requireNonNull(currency);
 		this.card = Objects.requireNonNull(card);
 		this.client = Objects.requireNonNull(client);
@@ -58,10 +59,10 @@ public class Transaction implements Serializable {
 	}
 	
 	@Basic
-	public Float getAmount() {
+	public BigDecimal getAmount() {
 		return amount;
 	}
-
+	
 	@Basic
 	public String getCurrency() {
 		return currency;
@@ -79,6 +80,7 @@ public class Transaction implements Serializable {
 	
 	@Override
 	public int hashCode() {
+		//just some implementation
 		return client.hashCode();
 	}
 	
@@ -88,15 +90,11 @@ public class Transaction implements Serializable {
 			return false;
 		}
 		Transaction other = (Transaction)obj;
-		if (!this.place.equals(other.place)
-				|| Math.abs(this.amount - other.amount) > 0.001f
-				|| !this.currency.equals(other.currency)
-				|| !this.card.equals(other.card)
-				|| !this.client.equals(other.client)) {
-			return false;
-		} else {
-			return true;
-		}
+		return this.place.equalsIgnoreCase(other.place)
+				&& this.amount.equals(other.amount)
+				&& this.currency.equalsIgnoreCase(other.currency)
+				&& this.card.equals(other.card)
+				&& this.client.equals(other.client);
 	}
 	
 	@Override
@@ -118,12 +116,11 @@ public class Transaction implements Serializable {
 		this.place = place;
 	}
 	
-	
 	@XmlElement(name = "amount")
-	protected void setAmount(Float amount) {
+	protected void setAmount(BigDecimal amount) {
 		this.amount = amount;
 	}
-	
+		
 	@XmlElement(name = "currency")
 	protected void setCurrency(String currency) {
 		this.currency = currency;

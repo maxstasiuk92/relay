@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.TestPropertySource;
 
-//NOTE: active profile is not test
+//NOTE: active profile is not 'test'
 @SpringBootTest
 @TestPropertySource(properties = 
 	{"spring.datasource.url=jdbc:derby:memory:testdb;create=true",

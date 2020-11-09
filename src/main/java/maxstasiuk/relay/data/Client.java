@@ -43,9 +43,9 @@ public class Client implements Serializable {
 			return false;
 		}
 		Client other = (Client)obj;
-		if (!this.firstName.equals(other.firstName) 
-				|| !this.middleName.equals(other.middleName) 
-				|| !this.lastName.equals(other.lastName) 
+		if (!this.firstName.equalsIgnoreCase(other.firstName) 
+				|| !this.middleName.equalsIgnoreCase(other.middleName) 
+				|| !this.lastName.equalsIgnoreCase(other.lastName) 
 				|| !this.inn.equals(other.inn)) {
 			return false;
 		} else {
@@ -55,7 +55,7 @@ public class Client implements Serializable {
 	
 	@Override
 	public int hashCode() {
-		return lastName.hashCode();
+		return inn.hashCode();
 	}
 	
 	@Override
