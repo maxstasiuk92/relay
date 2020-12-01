@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories
 public class RelayApplication  {
 	//some comment
+	//other comment
 	public static void main(String[] args) {
 		SpringApplication.run(RelayApplication.class, args);
 	}
